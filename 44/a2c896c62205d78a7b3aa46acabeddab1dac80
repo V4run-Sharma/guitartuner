@@ -1,0 +1,73 @@
+README.md
+  s_47179f0b88a516::t_a6c16634c59384 1-39
+index.html
+  s_47179f0b88a516::t_18c1506e6d1bc2 1-20
+package-lock.json
+  s_47179f0b88a516::t_f9b8395c7bb9f6 1-9148
+package.json
+  s_47179f0b88a516::t_0107bd243d2bba 1-40
+public/favicon.svg
+  s_47179f0b88a516::t_6b2e62c4c11dc9 1-8
+pwa-assets.config.ts
+  s_47179f0b88a516::t_ff5331d95c240c 1-10
+src/index.css
+  s_47179f0b88a516::t_c1b0cf6da009c1 1-28
+src/lib/tunings.ts
+  s_47179f0b88a516::t_4b029a73259154 1-72
+.gitignore
+  s_47179f0b88a516::t_97c30dcf7c0b76 1-26
+eslint.config.js
+  s_47179f0b88a516::t_8e04b7eeccce13 1-26
+scripts/deploy.sh
+  s_47179f0b88a516::t_73be1e0c043387 1-38
+src/App.svelte
+  s_47179f0b88a516::t_3378c4fd9f390b 1-316
+src/components/BottomSheet.svelte
+  s_47179f0b88a516::t_edcded6b701fbe 1-73
+src/components/Gauge.svelte
+  s_47179f0b88a516::t_a45900590e9e2e 1-125
+src/components/Segmented.svelte
+  s_47179f0b88a516::t_73c9df0399f924 1-25
+src/components/SettingsSheet.svelte
+  s_47179f0b88a516::t_866ff45ca28b78 1-102
+src/components/TuningPicker.svelte
+  s_47179f0b88a516::t_ec05af1552d89b 1-96
+src/lib/audio.ts
+  s_47179f0b88a516::t_f03e15cd3e6870 1-115
+src/lib/music.ts
+  s_47179f0b88a516::t_95f404797517db 1-48
+src/lib/pitch-processor.ts
+  s_47179f0b88a516::t_8aab51af2d82ed 1-195
+src/lib/settings.ts
+  s_47179f0b88a516::t_065735567d5b7f 1-83
+src/lib/tuner.svelte.ts
+  s_47179f0b88a516::t_6ce74aa191b9cc 1-86
+src/main.ts
+  s_47179f0b88a516::t_6f493cd029b806 1-7
+svelte.config.js
+  s_47179f0b88a516::t_faa5dea63fb7db 1-6
+tsconfig.app.json
+  s_47179f0b88a516::t_8b5d2c219cf235 1-22
+tsconfig.json
+  s_47179f0b88a516::t_5021c829486cda 1-7
+tsconfig.node.json
+  s_47179f0b88a516::t_fa9ece87970af8 1-23
+vite.config.ts
+  s_47179f0b88a516::t_73f27152f24dec 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.11",
+  "base_commit_sha": "44a2c896c62205d78a7b3aa46acabeddab1dac80",
+  "prompts": {},
+  "sessions": {
+    "s_47179f0b88a516": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "68657dc8-a03f-49a6-9be7-abb8b5f36e93",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "V4run-Sharma <sharmavarun.1912@gmail.com>"
+    }
+  }
+}
