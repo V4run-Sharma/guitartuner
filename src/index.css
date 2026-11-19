@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0b0b10;
+  --color-panel: #16161d;
+  --color-line: #2a2a35;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+}
+
+/* Only <html> gets the background, so the fixed backdrop layer (z-index -10) shows above it. */
+html {
+  background: var(--color-ink);
+}
+
+html,
+body {
+  color: #e7e7ee;
+  color-scheme: dark;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+button,
+select,
+input {
+  touch-action: manipulation;
+}
