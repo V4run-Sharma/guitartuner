@@ -7,6 +7,9 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
 }
 
+/* Compact layout for short screens such as the iPhone SE. */
+@custom-variant short (@media (max-height: 700px));
+
 /* Only <html> gets the background, so the fixed backdrop layer (z-index -10) shows above it. */
 html {
   background: var(--color-ink);

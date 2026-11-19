@@ -139,7 +139,7 @@
   ></div>
 </div>
 
-<main class="mx-auto flex min-h-dvh max-w-md flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+<main class="mx-auto flex h-dvh max-w-md flex-col px-4 pt-[calc(env(safe-area-inset-top,0px)+1.5rem)] pb-[max(1rem,env(safe-area-inset-bottom))]">
   <header class="flex items-center gap-3">
     <div class="flex-1">
       <Segmented label="Tuner mode" options={modeOptions} bind:value={settings.mode} />
@@ -167,19 +167,20 @@
     {/if}
   </div>
 
-  <section class="flex flex-1 flex-col items-center justify-center py-4" aria-live="polite">
-    <div class="w-full px-1">
+  <section class="flex min-h-0 flex-1 flex-col items-center pt-4" aria-live="polite">
+    <!-- The gauge scales to whatever height is left, so the page fits short and tall screens. -->
+    <div class="relative min-h-0 w-full flex-1 px-1">
       <Gauge {cents} tolerance={settings.tolerance} {tone} live={tuner.active} />
     </div>
 
-    <div class="relative mt-1 flex h-36 items-center justify-center">
+    <div class="relative flex h-32 short:h-24 items-center justify-center">
       <div
         class="flex items-start leading-none transition-[color,text-shadow,opacity] duration-200"
         style:color={target ? (tuner.active ? (tone === 'good' ? '#d1fae5' : '#fafafa') : '#71717a') : '#3f3f46'}
         style:text-shadow={glowOn ? `0 0 32px ${toneColor}66` : 'none'}
       >
-        <span class="text-[124px] font-bold tracking-tighter">{target?.name ?? '–'}</span>
-        {#if target}<span class="mt-4 ml-1 text-3xl font-semibold text-zinc-500">{target.octave}</span>{/if}
+        <span class="text-[112px] short:text-[84px] font-bold tracking-tighter">{target?.name ?? '–'}</span>
+        {#if target}<span class="mt-3 ml-1 text-3xl short:mt-2 short:text-2xl font-semibold text-zinc-500">{target.octave}</span>{/if}
       </div>
     </div>
 

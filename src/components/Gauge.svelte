@@ -61,7 +61,7 @@
   const color = $derived(TONE_COLORS[tone])
 </script>
 
-<svg viewBox="0 0 320 186" class="w-full overflow-visible select-none" role="img" aria-label={cents === null ? 'No pitch detected' : `${Math.round(cents)} cents`}>
+<svg viewBox="0 0 320 186" preserveAspectRatio="xMidYMax meet" class="absolute inset-0 size-full overflow-visible select-none" role="img" aria-label={cents === null ? 'No pitch detected' : `${Math.round(cents)} cents`}>
   <defs>
     <linearGradient id="track" x1="0" x2="1" y1="0" y2="0">
       <stop offset="0" stop-color="#fb7185" />
