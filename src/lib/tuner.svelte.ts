@@ -1,10 +1,13 @@
 import { PitchListener, type PitchReading } from './audio'
-import { gateDb, minClarity, smoothingWindow, type Settings } from './settings'
+import { accepts } from './gate'
+import { smoothingWindow, type Settings } from './settings'
 
 /** Drop the filter history after this much silence so a new note starts clean. */
-const NOTE_GAP_MS = 150
+const NOTE_GAP_MS = 300
+/** A note keeps its lower "sustain" bar across dropouts up to this long. */
+const SUSTAIN_GAP_MS = 400
 /** Keep showing the last note (dimmed) for this long after the sound stops. */
-const HOLD_MS = 1500
+const HOLD_MS = 3000
 
 /**
  * Reactive tuner state: turns raw worklet readings into a stable frequency,
@@ -59,8 +62,9 @@ export class Tuner {
     const now = performance.now()
     this.level = 20 * Math.log10(Math.max(r.rms, 1e-5))
 
-    const heard = r.freq > 0 && this.level >= gateDb(s.sensitivity) && r.clarity >= minClarity(s.sensitivity)
-    if (heard) {
+    // Follow the current note (even a held one) at a lower bar so a fading string keeps reading.
+    const tracking = this.freq !== null && now - this.lastHeard <= SUSTAIN_GAP_MS ? this.freq : null
+    if (accepts({ freq: r.freq, clarity: r.clarity, level: this.level }, s.sensitivity, tracking)) {
       this.history.push(r.freq)
       const size = smoothingWindow(s.response)
       if (this.history.length > size) this.history.splice(0, this.history.length - size)

@@ -21,7 +21,47 @@ const FFT_SIZE = WINDOW * 2 // zero-padded so the circular autocorrelation equal
 const MIN_FREQ = 27 // just under B0 (30.87 Hz)
 const MAX_FREQ = 4200 // above C8, plenty for chromatic mode
 const PEAK_THRESHOLD = 0.9 // MPM "k": first key maximum within 90% of the highest one
-const SILENCE_RMS = 0.0005 // skip analysis on near-digital silence to save battery
+const SILENCE_RMS = 0.00003 // ~-90 dBFS: skip analysis only on near-digital silence
+/**
+ * Low-pass cutoff applied before analysis. Guitar, bass and ukulele fundamentals sit below
+ * ~1.4 kHz, while mic hiss spreads across the whole 24 kHz band; cutting it here raises the
+ * signal-to-noise ratio a lot, so a fading string stays readable for much longer.
+ */
+const LOWPASS_HZ = 1500
+
+/** RBJ biquad low-pass section (Direct Form I). */
+class Biquad {
+  private readonly b0: number
+  private readonly b1: number
+  private readonly b2: number
+  private readonly a1: number
+  private readonly a2: number
+  private x1 = 0
+  private x2 = 0
+  private y1 = 0
+  private y2 = 0
+
+  constructor(freq: number, q: number) {
+    const w = (2 * Math.PI * freq) / sampleRate
+    const alpha = Math.sin(w) / (2 * q)
+    const cos = Math.cos(w)
+    const a0 = 1 + alpha
+    this.b0 = (1 - cos) / 2 / a0
+    this.b1 = (1 - cos) / a0
+    this.b2 = this.b0
+    this.a1 = (-2 * cos) / a0
+    this.a2 = (1 - alpha) / a0
+  }
+
+  step(x: number): number {
+    const y = this.b0 * x + this.b1 * this.x1 + this.b2 * this.x2 - this.a1 * this.y1 - this.a2 * this.y2
+    this.x2 = this.x1
+    this.x1 = x
+    this.y2 = this.y1
+    this.y1 = y
+    return y
+  }
+}
 
 class FFT {
   private readonly n: number
@@ -89,13 +129,16 @@ class PitchProcessor extends AudioWorkletProcessor {
   private readonly fft = new FFT(FFT_SIZE)
   private readonly tauMin = Math.floor(sampleRate / MAX_FREQ)
   private readonly tauMax = Math.min(Math.ceil(sampleRate / MIN_FREQ), WINDOW - 2)
+  /** Two sections with Butterworth Qs make a 4th-order low-pass (24 dB/octave). */
+  private readonly lowpass = [new Biquad(LOWPASS_HZ, 0.5412), new Biquad(LOWPASS_HZ, 1.3066)]
 
   process(inputs: Float32Array[][]): boolean {
     const channel = inputs[0]?.[0]
     if (!channel) return true
 
+    const [lp1, lp2] = this.lowpass
     for (let i = 0; i < channel.length; i++) {
-      this.ring[this.writePos] = channel[i]
+      this.ring[this.writePos] = lp2.step(lp1.step(channel[i]))
       this.writePos = (this.writePos + 1) % WINDOW
     }
     this.sinceLast += channel.length

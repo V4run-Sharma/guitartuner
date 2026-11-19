@@ -33,15 +33,7 @@ export const A4_MIN = 415
 export const A4_MAX = 466
 export const TOLERANCES = [2, 3, 5, 10]
 
-/** Input level (dBFS) a note must reach before it is analysed. */
-export function gateDb(sensitivity: number): number {
-  return -28 - (sensitivity - 1) * 4 // 1 → -28 dB, 10 → -64 dB
-}
-
-/** Minimum pitch clarity accepted; higher sensitivity accepts messier signals. */
-export function minClarity(sensitivity: number): number {
-  return 0.93 - sensitivity * 0.015 // 1 → 0.915, 10 → 0.78
-}
+export { gateDb } from './gate'
 
 /** How many recent readings are median-filtered. */
 export function smoothingWindow(response: Response): number {
