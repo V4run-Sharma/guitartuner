@@ -28,6 +28,8 @@ const SILENCE_RMS = 0.00003 // ~-90 dBFS: skip analysis only on near-digital sil
  * signal-to-noise ratio a lot, so a fading string stays readable for much longer.
  */
 const LOWPASS_HZ = 1500
+/** How far either side of the followed note the guided search looks. */
+const GUIDE_CENTS = 40
 
 /** RBJ biquad low-pass section (Direct Form I). */
 class Biquad {
@@ -131,6 +133,15 @@ class PitchProcessor extends AudioWorkletProcessor {
   private readonly tauMax = Math.min(Math.ceil(sampleRate / MIN_FREQ), WINDOW - 2)
   /** Two sections with Butterworth Qs make a 4th-order low-pass (24 dB/octave). */
   private readonly lowpass = [new Biquad(LOWPASS_HZ, 0.5412), new Biquad(LOWPASS_HZ, 1.3066)]
+  /** Frequency of the note the main thread is following, or 0 for none. */
+  private trackFreq = 0
+
+  constructor() {
+    super()
+    this.port.onmessage = (e: MessageEvent<{ track: number }>) => {
+      this.trackFreq = e.data.track > 0 ? e.data.track : 0
+    }
+  }
 
   process(inputs: Float32Array[][]): boolean {
     const channel = inputs[0]?.[0]
@@ -150,7 +161,7 @@ class PitchProcessor extends AudioWorkletProcessor {
   }
 
   private analyse(): void {
-    const { frame, ring, re, im, nsdf, tauMin, tauMax } = this
+    const { frame, ring, re, im, nsdf, tauMax } = this
 
     // Unroll the ring buffer (oldest sample first) and remove DC offset.
     let mean = 0
@@ -166,7 +177,7 @@ class PitchProcessor extends AudioWorkletProcessor {
     }
     const rms = Math.sqrt(energy / WINDOW)
     if (rms < SILENCE_RMS) {
-      this.port.postMessage({ freq: 0, clarity: 0, rms })
+      this.port.postMessage({ freq: 0, clarity: 0, rms, trackFreq: 0, trackClarity: 0 })
       return
     }
 
@@ -191,7 +202,20 @@ class PitchProcessor extends AudioWorkletProcessor {
       nsdf[tau] = m > 0 ? (2 * re[tau]) / FFT_SIZE / m : 0
     }
 
-    // Peak picking: one key maximum per positive lobe after the first negative zero crossing.
+    const open = this.pickPeak()
+    const guided = this.trackFreq > 0 ? this.guidedPeak(this.trackFreq) : null
+    this.port.postMessage({
+      freq: open?.freq ?? 0,
+      clarity: open?.clarity ?? 0,
+      rms,
+      trackFreq: guided?.freq ?? 0,
+      trackClarity: guided?.clarity ?? 0,
+    })
+  }
+
+  /** Open search (MPM): first key maximum within PEAK_THRESHOLD of the highest one. */
+  private pickPeak(): { freq: number; clarity: number } | null {
+    const { nsdf, tauMin, tauMax } = this
     let tau = 1
     while (tau < tauMax && nsdf[tau] > 0) tau++ // skip the lobe around lag 0
     let highest = 0
@@ -208,30 +232,40 @@ class PitchProcessor extends AudioWorkletProcessor {
         if (nsdf[best] > highest) highest = nsdf[best]
       }
     }
-    if (peaks.length === 0) {
-      this.port.postMessage({ freq: 0, clarity: 0, rms })
-      return
-    }
+    if (peaks.length === 0) return null
 
     const cutoff = PEAK_THRESHOLD * highest
-    let chosen = peaks[0]
-    for (const p of peaks) {
-      if (nsdf[p] >= cutoff) {
-        chosen = p
-        break
-      }
-    }
+    const chosen = peaks.find((p) => nsdf[p] >= cutoff) ?? peaks[0]
+    return this.interpolate(chosen)
+  }
 
-    // Parabolic interpolation for sub-sample accuracy.
-    const a = nsdf[chosen - 1]
-    const b = nsdf[chosen]
-    const c = nsdf[chosen + 1]
+  /**
+   * Guided search: the strongest NSDF peak within ±GUIDE_CENTS of the note already being
+   * followed. Looking at only that narrow lag range finds a faint, fading string that the open
+   * search loses among noise peaks elsewhere.
+   */
+  private guidedPeak(freq: number): { freq: number; clarity: number } | null {
+    const { nsdf, tauMax } = this
+    const ratio = 2 ** (GUIDE_CENTS / 1200)
+    const lo = Math.max(2, Math.floor(sampleRate / (freq * ratio)))
+    const hi = Math.min(tauMax - 1, Math.ceil((sampleRate * ratio) / freq))
+    if (hi - lo < 2) return null
+    let best = lo
+    for (let tau = lo + 1; tau <= hi; tau++) if (nsdf[tau] > nsdf[best]) best = tau
+    // A maximum on the edge of the range means the real peak lies outside it.
+    if (best === lo || best === hi || nsdf[best] <= 0) return null
+    return this.interpolate(best)
+  }
+
+  /** Parabolic interpolation around a peak for sub-sample accuracy. */
+  private interpolate(tau: number): { freq: number; clarity: number } {
+    const { nsdf } = this
+    const a = nsdf[tau - 1]
+    const b = nsdf[tau]
+    const c = nsdf[tau + 1]
     const denom = a - 2 * b + c
     const shift = denom !== 0 ? (0.5 * (a - c)) / denom : 0
-    const period = chosen + shift
-    const clarity = b - 0.25 * (a - c) * shift
-
-    this.port.postMessage({ freq: sampleRate / period, clarity, rms })
+    return { freq: sampleRate / (tau + shift), clarity: b - 0.25 * (a - c) * shift }
   }
 }
 

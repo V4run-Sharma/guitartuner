@@ -1,5 +1,5 @@
-import { PitchListener, type PitchReading } from './audio'
-import { accepts } from './gate'
+import { PitchListener, type MicInfo, type PitchReading } from './audio'
+import { accept } from './gate'
 import { smoothingWindow, type Settings } from './settings'
 
 /** Drop the filter history after this much silence so a new note starts clean. */
@@ -23,6 +23,8 @@ export class Tuner {
   listening = $state(false)
   starting = $state(false)
   error = $state<string | null>(null)
+  /** What the browser applied to the mic once listening (for the settings mic check). */
+  micInfo = $state<MicInfo | null>(null)
 
   private readonly getSettings: () => Settings
   private readonly listener: PitchListener
@@ -41,6 +43,7 @@ export class Tuner {
     try {
       await this.listener.start()
       this.listening = true
+      this.micInfo = this.listener.micInfo
     } catch (err) {
       this.error = err instanceof Error ? err.message : String(err)
     } finally {
@@ -64,22 +67,26 @@ export class Tuner {
 
     // Follow the current note (even a held one) at a lower bar so a fading string keeps reading.
     const tracking = this.freq !== null && now - this.lastHeard <= SUSTAIN_GAP_MS ? this.freq : null
-    if (accepts({ freq: r.freq, clarity: r.clarity, level: this.level }, s.sensitivity, tracking)) {
-      this.history.push(r.freq)
+    const freq = accept({ ...r, level: this.level }, s.sensitivity, tracking)
+    if (freq !== null) {
+      this.history.push(freq)
       const size = smoothingWindow(s.response)
       if (this.history.length > size) this.history.splice(0, this.history.length - size)
       this.freq = median(this.history)
       this.active = true
       this.lastHeard = now
-      return
+    } else {
+      const quietFor = now - this.lastHeard
+      if (this.active && quietFor > NOTE_GAP_MS) {
+        this.active = false
+        this.history = []
+      }
+      if (this.freq !== null && quietFor > HOLD_MS) this.freq = null
     }
 
-    const quietFor = now - this.lastHeard
-    if (this.active && quietFor > NOTE_GAP_MS) {
-      this.active = false
-      this.history = []
-    }
-    if (this.freq !== null && quietFor > HOLD_MS) this.freq = null
+    // Point the worklet's guided search at the note we're following (0 stops it).
+    const next = this.freq !== null && now - this.lastHeard <= SUSTAIN_GAP_MS ? this.freq : 0
+    this.listener.track(next)
   }
 }
 

@@ -297,7 +297,7 @@
   </div>
 </main>
 
-<SettingsSheet bind:settings bind:open={settingsOpen} level={tuner.level} listening={tuner.listening} />
+<SettingsSheet bind:settings bind:open={settingsOpen} level={tuner.level} listening={tuner.listening} micInfo={tuner.micInfo} />
 
 <style>
   .eq {

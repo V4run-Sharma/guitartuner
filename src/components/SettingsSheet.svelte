@@ -1,5 +1,6 @@
 <script lang="ts">
   import { A4_MAX, A4_MIN, DEFAULT_SETTINGS, TOLERANCES, gateDb, type Response, type Settings } from '../lib/settings'
+  import type { MicInfo } from '../lib/audio'
   import type { Accidentals } from '../lib/music'
   import BottomSheet from './BottomSheet.svelte'
   import Segmented from './Segmented.svelte'
@@ -9,12 +10,24 @@
     /** Live input level in dBFS, for calibrating sensitivity. */
     level: number
     listening: boolean
+    micInfo: MicInfo | null
     open: boolean
   }
 
-  let { settings = $bindable(), level, listening, open = $bindable() }: Props = $props()
+  let { settings = $bindable(), level, listening, micInfo, open = $bindable() }: Props = $props()
 
-  const LEVEL_FLOOR = -80
+  /** Each flag should be off; iOS noise suppression in particular fades out held notes. */
+  const processing = $derived(
+    micInfo
+      ? [
+          { label: 'Noise suppression', on: micInfo.noiseSuppression },
+          { label: 'Echo cancellation', on: micInfo.echoCancellation },
+          { label: 'Auto gain', on: micInfo.autoGainControl },
+        ]
+      : [],
+  )
+
+  const LEVEL_FLOOR = -100
   const toPct = (db: number) => Math.max(0, Math.min(100, ((db - LEVEL_FLOOR) / -LEVEL_FLOOR) * 100))
   const gatePct = $derived(toPct(gateDb(settings.sensitivity)))
   const levelPct = $derived(toPct(level))
@@ -98,5 +111,28 @@
       </span>
       <input type="checkbox" bind:checked={settings.keepAwake} class="size-5 accent-sky-400" />
     </label>
+
+    {#if listening && micInfo}
+      <section class="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-4">
+        <h3 class="text-sm font-medium">Mic check</h3>
+        <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 text-xs">
+          <dt class="text-zinc-500">Input level</dt>
+          <dd class="text-right font-mono text-zinc-300 tabular-nums">{level.toFixed(0)} dB</dd>
+          <dt class="text-zinc-500">Pick-up threshold</dt>
+          <dd class="text-right font-mono text-zinc-300 tabular-nums">{gateDb(settings.sensitivity).toFixed(0)} dB</dd>
+          {#each processing as p (p.label)}
+            <dt class="text-zinc-500">{p.label}</dt>
+            <dd class="text-right font-mono {p.on ? 'text-rose-400' : p.on === false ? 'text-emerald-400' : 'text-zinc-500'}">
+              {p.on ? 'on' : p.on === false ? 'off' : 'unknown'}
+            </dd>
+          {/each}
+          <dt class="text-zinc-500">Sample rate</dt>
+          <dd class="text-right font-mono text-zinc-300">{(micInfo.sampleRate / 1000).toFixed(1)} kHz</dd>
+        </dl>
+        {#if processing.some((p) => p.on)}
+          <p class="text-xs text-rose-300">The browser kept voice processing on, which can fade out a held note after a second or two.</p>
+        {/if}
+      </section>
+    {/if}
   </div>
 </BottomSheet>

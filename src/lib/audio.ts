@@ -7,6 +7,17 @@ export interface PitchReading {
   clarity: number
   /** Root-mean-square level of the analysis window (0..1). */
   rms: number
+  /** Guided-search result near the note passed to `track()`; 0 when not tracking. */
+  trackFreq: number
+  trackClarity: number
+}
+
+/** What the browser actually applied to the mic, for diagnosing quiet or cut-off input. */
+export interface MicInfo {
+  sampleRate: number
+  echoCancellation: boolean | null
+  noiseSuppression: boolean | null
+  autoGainControl: boolean | null
 }
 
 export type MicErrorKind = 'denied' | 'unsupported' | 'no-device' | 'other'
@@ -34,8 +45,32 @@ export class PitchListener {
     this.onReading = onReading
   }
 
+  private tracked = 0
+
   get running(): boolean {
     return this.ctx !== null
+  }
+
+  /** Tell the worklet which note to run its guided search around (0 to stop). */
+  track(freq: number): void {
+    // Only message the worklet when it actually changes (more than ~2 cents, or on/off).
+    const changed = (freq === 0) !== (this.tracked === 0) || (freq > 0 && Math.abs(1200 * Math.log2(freq / this.tracked)) > 2)
+    if (!changed || !this.node) return
+    this.tracked = freq
+    this.node.port.postMessage({ track: freq })
+  }
+
+  get micInfo(): MicInfo | null {
+    const track = this.stream?.getAudioTracks()[0]
+    if (!this.ctx || !track) return null
+    const s = track.getSettings()
+    return {
+      sampleRate: this.ctx.sampleRate,
+      // Newer browsers may report a mode string such as "all" instead of true.
+      echoCancellation: typeof s.echoCancellation === 'string' ? true : (s.echoCancellation ?? null),
+      noiseSuppression: s.noiseSuppression ?? null,
+      autoGainControl: s.autoGainControl ?? null,
+    }
   }
 
   async start(): Promise<void> {
@@ -87,6 +122,7 @@ export class PitchListener {
     this.node?.port.close()
     this.node?.disconnect()
     this.node = null
+    this.tracked = 0
     this.stream?.getTracks().forEach((t) => t.stop())
     this.stream = null
     const ctx = this.ctx
