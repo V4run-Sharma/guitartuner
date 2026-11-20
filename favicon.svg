@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0b0b10"/>
+  <path d="M106 330a150 150 0 0 1 300 0" fill="none" stroke="#2a2a35" stroke-width="28" stroke-linecap="round"/>
+  <path d="M226 183a150 150 0 0 1 60 0" fill="none" stroke="#34d399" stroke-width="28" stroke-linecap="round"/>
+  <line x1="256" y1="330" x2="256" y2="160" stroke="#34d399" stroke-width="22" stroke-linecap="round"/>
+  <circle cx="256" cy="330" r="30" fill="#34d399"/>
+  <text x="256" y="440" fill="#e7e7ee" font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="88" font-weight="700" text-anchor="middle">E</text>
+</svg>
