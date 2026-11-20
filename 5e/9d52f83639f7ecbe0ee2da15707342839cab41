@@ -1,0 +1,38 @@
+src/lib/metronome.svelte.ts
+  s_47179f0b88a516::t_d7bec46c449931 1-184
+src/components/MetronomeView.svelte
+  s_47179f0b88a516::t_f2298c84a8fd82 1-56,58-76,78-175
+  s_47179f0b88a516::t_3866500f044c1e 57
+  s_47179f0b88a516::t_341b563522e524 77
+src/lib/settings.ts
+  s_47179f0b88a516::t_bd1bbb031df6d8 21-27
+  s_47179f0b88a516::t_7fc31d8de5ca84 74-78
+  s_47179f0b88a516::t_fdd438479ba0c7 39-42,45-48
+  s_47179f0b88a516::t_17a5668c0b8976 4,6-7
+  s_47179f0b88a516::t_4c0691ddbce91c 49
+src/App.svelte
+  s_47179f0b88a516::t_10b5a5cd89184f 4
+  s_47179f0b88a516::t_bc0b478612181b 18-28
+  s_47179f0b88a516::t_6ec4e05e03b107 176-177,179,184-186
+  s_47179f0b88a516::t_4f3571a0452741 316
+  s_47179f0b88a516::t_e51b1120f316f4 9
+  s_47179f0b88a516::t_57683858dec17d 119
+  s_47179f0b88a516::t_cd22b44af4058b 49
+  s_47179f0b88a516::t_2c1b441b61d926 187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.11",
+  "base_commit_sha": "5e9d52f83639f7ecbe0ee2da15707342839cab41",
+  "prompts": {},
+  "sessions": {
+    "s_47179f0b88a516": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "68657dc8-a03f-49a6-9be7-abb8b5f36e93",
+        "model": "unknown"
+      },
+      "human_author": "V4run-Sharma <sharmavarun.1912@gmail.com>"
+    }
+  }
+}
