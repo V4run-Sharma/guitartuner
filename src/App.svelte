@@ -1,10 +1,12 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import Gauge, { TONE_COLORS, type Tone } from './components/Gauge.svelte'
+  import MetronomeView from './components/MetronomeView.svelte'
   import Segmented from './components/Segmented.svelte'
   import SettingsSheet from './components/SettingsSheet.svelte'
   import TuningPicker from './components/TuningPicker.svelte'
   import { centsBetween, freqToMidi, midiToFreq, noteFromMidi, parseNote, specName } from './lib/music'
+  import { Metronome, tempoName } from './lib/metronome.svelte'
   import { loadSettings, saveSettings, type Mode } from './lib/settings'
   import { Tuner } from './lib/tuner.svelte'
   import { findTuning } from './lib/tunings'
@@ -13,6 +15,17 @@
   $effect(() => saveSettings($state.snapshot(settings)))
 
   const tuner = new Tuner(() => settings)
+  const metronome = new Metronome(() => settings)
+
+  // The mic and the click shouldn't run together (iOS would route the click to the earpiece),
+  // so switching tabs stops whichever one is being left.
+  $effect(() => {
+    const mode = settings.mode
+    untrack(() => {
+      if (mode === 'metronome') void tuner.stop()
+      else metronome.stop()
+    })
+  })
 
   let settingsOpen = $state(false)
   /** String index the user tapped to lock onto, or null for automatic. */
@@ -33,6 +46,7 @@
   const modeOptions: { value: Mode; label: string }[] = [
     { value: 'instrument', label: 'Instrument' },
     { value: 'chromatic', label: 'Chromatic' },
+    { value: 'metronome', label: 'Metronome' },
   ]
 
   interface Target {
@@ -102,7 +116,7 @@
   // Keep the screen awake while listening (iOS 16.4+). The lock drops when the app is
   // hidden, so take it again when it comes back.
   $effect(() => {
-    if (!tuner.listening || !settings.keepAwake || !('wakeLock' in navigator)) return
+    if (!(tuner.listening || metronome.playing) || !settings.keepAwake || !('wakeLock' in navigator)) return
     let lock: WakeLockSentinel | null = null
     let cancelled = false
     const acquire = async () => {
@@ -159,13 +173,17 @@
     {:else}
       <div class="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
         <span class="min-w-0 flex-1">
-          <span class="block text-[11px] font-semibold tracking-[0.14em] text-zinc-500 uppercase">Chromatic</span>
-          <span class="block truncate text-base font-semibold text-zinc-100">Any note</span>
+          <span class="block text-[11px] font-semibold tracking-[0.14em] text-zinc-500 uppercase">{settings.mode === 'metronome' ? 'Metronome' : 'Chromatic'}</span>
+          <span class="block truncate text-base font-semibold text-zinc-100">{settings.mode === 'metronome' ? tempoName(settings.bpm) : 'Any note'}</span>
         </span>
-        <span class="font-mono text-xs text-zinc-400">A4 = {settings.a4} Hz</span>
+        <span class="font-mono text-xs text-zinc-400">{settings.mode === 'metronome' ? `${settings.beats}/4` : `A4 = ${settings.a4} Hz`}</span>
       </div>
     {/if}
   </div>
+
+  {#if settings.mode === 'metronome'}
+    <MetronomeView bind:settings {metronome} />
+  {:else}
 
   <section class="flex min-h-0 flex-1 flex-col items-center pt-4" aria-live="polite">
     <!-- The gauge scales to whatever height is left, so the page fits short and tall screens. -->
@@ -295,6 +313,7 @@
     </button>
   {/if}
   </div>
+  {/if}
 </main>
 
 <SettingsSheet bind:settings bind:open={settingsOpen} level={tuner.level} listening={tuner.listening} micInfo={tuner.micInfo} />

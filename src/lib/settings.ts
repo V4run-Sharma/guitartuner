@@ -1,8 +1,10 @@
 import type { Accidentals } from './music'
 import { DEFAULT_TUNING_ID, findTuning } from './tunings'
 
-export type Mode = 'instrument' | 'chromatic'
+export type Mode = 'instrument' | 'chromatic' | 'metronome'
 export type Response = 'fast' | 'balanced' | 'stable'
+/** Clicks per beat: 1 = quarters, 2 = eighths, 3 = triplets, 4 = sixteenths. */
+export type Subdivision = 1 | 2 | 3 | 4
 
 export interface Settings {
   mode: Mode
@@ -16,6 +18,13 @@ export interface Settings {
   response: Response
   accidentals: Accidentals
   keepAwake: boolean
+  /** Metronome tempo in beats per minute. */
+  bpm: number
+  /** Metronome beats per bar; the first one is accented. */
+  beats: number
+  subdivision: Subdivision
+  /** Accent the first beat of each bar. */
+  accent: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -27,7 +36,16 @@ export const DEFAULT_SETTINGS: Settings = {
   response: 'balanced',
   accidentals: 'sharps',
   keepAwake: true,
+  bpm: 100,
+  beats: 4,
+  subdivision: 1,
+  accent: true,
 }
+
+export const BPM_MIN = 30
+export const BPM_MAX = 260
+export const BEATS_MIN = 1
+export const BEATS_MAX = 12
 
 export const A4_MIN = 415
 export const A4_MAX = 466
@@ -53,7 +71,11 @@ export function loadSettings(): Settings {
     s.sensitivity = clamp(Math.round(Number(s.sensitivity) || 6), 1, 10)
     if (!TOLERANCES.includes(s.tolerance)) s.tolerance = DEFAULT_SETTINGS.tolerance
     if (!['fast', 'balanced', 'stable'].includes(s.response)) s.response = DEFAULT_SETTINGS.response
-    if (s.mode !== 'chromatic') s.mode = 'instrument'
+    if (!['instrument', 'chromatic', 'metronome'].includes(s.mode)) s.mode = 'instrument'
+    s.bpm = clamp(Math.round(Number(s.bpm) || DEFAULT_SETTINGS.bpm), BPM_MIN, BPM_MAX)
+    s.beats = clamp(Math.round(Number(s.beats) || DEFAULT_SETTINGS.beats), BEATS_MIN, BEATS_MAX)
+    if (![1, 2, 3, 4].includes(s.subdivision)) s.subdivision = 1
+    s.accent = s.accent !== false
     if (s.accidentals !== 'flats') s.accidentals = 'sharps'
     s.keepAwake = s.keepAwake !== false
     return s
